@@ -6,6 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export type Merge<T> = {
+export type Pretty<T> = {
   [K in keyof T]: T[K];
 } & {};

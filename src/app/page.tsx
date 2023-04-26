@@ -1,37 +1,45 @@
+import PrefList from '@/ui/prefList';
 import { cn } from '@/utils';
-import PrefCheckbox from '@/ui/prefCheckbox';
+import dynamic from 'next/dynamic';
+import RootProvider from './_provider';
+import { Pref } from './type';
+
 const RESAS_API_ENDPOINT = 'https://opendata.resas-portal.go.jp';
-export default async function Home() {
+
+/**
+ * @desc 都道府県一覧を取得する
+ * @returns 都道府県一覧
+ */
+async function getPrefectures(): Promise<{
+  result: Pref[];
+}> {
   const url = (RESAS_API_ENDPOINT + '/api/v1/prefectures') as string;
   const res = await fetch(url, {
-    cache: 'no-cache',
     headers: {
       'X-API-KEY': process.env.RESAS_API_KEY || '',
     },
   });
-  const { result } = (await res.json()) as {
-    result: {
-      prefCode: number;
-      prefName: string;
-    }[];
-  };
+  return res.json();
+}
+
+export default async function Home() {
+  const prefectures = await getPrefectures();
+
+  // dynamic import しないとエラーが出る
+  // https://github.com/vercel/next.js/issues/12863
+  const Chart = dynamic(() => import('@/ui/prefPopulationChart'), {
+    ssr: false,
+  });
 
   return (
-    <main className={cn('m-w-[80vw m-auto')}>
-      <ul className={cn('grid grid-cols-5')}>
-        {result.map((item) => {
-          return (
-            <li
-              key={item.prefCode}
-              className={cn(
-                'm-auto w-[160px] hover:underline underline-offset-4'
-              )}
-            >
-              <PrefCheckbox {...item} />
-            </li>
-          );
-        })}
-      </ul>
-    </main>
+    <RootProvider>
+      <main className={cn('m-w-[80vw m-auto py-10')}>
+        <PrefList prefList={prefectures.result} />
+        <Chart
+          resasApiKey={process.env.RESAS_API_KEY || ''}
+          resasApiEndpoint={RESAS_API_ENDPOINT}
+        />
+      </main>
+    </RootProvider>
   );
 }
